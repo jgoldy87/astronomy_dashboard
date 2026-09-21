@@ -119,8 +119,6 @@ def get_moon_image():
     """Return NASA's current Dial-A-Moon image."""
 
     now = datetime.now(timezone.utc)
-
-    # Dial-A-Moon works in hourly increments
     timestamp = now.strftime("%Y-%m-%dT%H:00")
 
     url = (
@@ -128,15 +126,22 @@ def get_moon_image():
         f"{timestamp}"
     )
 
-    response = requests.get(url, timeout=10)
-    response.raise_for_status()
+    try:
+        response = requests.get(
+            url,
+            timeout=15,
+        )
 
-    data = response.json()
+        response.raise_for_status()
+        data = response.json()
 
-    return {
-        "image_url": data["image"]["url"],
-        "alt_text": data["image"]["alt_text"],
-    }
+        return {
+            "image_url": data["image"]["url"],
+            "alt_text": data["image"]["alt_text"],
+        }
+
+    except requests.RequestException:
+        return None
 
 def azimuth_to_direction(azimuth):
     """Convert azimuth degrees into a compass direction."""
@@ -229,4 +234,18 @@ def get_moonrise_moonset(latitude, longitude, timezone_name):
     return {
         "moonrise": moonrise,
         "moonset": moonset,
+    }
+
+def get_moon_stats():
+    """Return key physical and orbital statistics for the Moon."""
+
+    return {
+        "diameter_km": 3474.8,
+        "mass_kg": 7.342e22,
+        "surface_gravity": 1.62,
+        "escape_velocity_kms": 2.38,
+        "orbital_period_days": 27.32,
+        "rotation_period_days": 27.32,
+        "average_distance_km": 384400,
+        "surface_area_km2": 37_936_694,
     }
