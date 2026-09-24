@@ -1,5 +1,7 @@
 import streamlit as st
 
+from pathlib import Path
+
 from services.moon import (
     get_moon_data,
     get_upcoming_phases,
@@ -10,6 +12,8 @@ from services.moon import (
 )
 
 from data.lunar_locations import LUNAR_LOCATIONS
+
+from data.lunar_gallery import LUNAR_GALLERY
 
 from services.moon_map import create_location_map
 
@@ -234,7 +238,11 @@ with position_col:
 
 st.divider()
 
-st.subheader("Upcoming Lunar Phases")
+st.subheader("🌗 Upcoming Lunar Phases")
+
+st.caption(
+    "The next four major phases in the current lunar cycle."
+)
 
 upcoming_phases = get_upcoming_phases()
 
@@ -243,68 +251,94 @@ cols = st.columns(4)
 for col, phase in zip(cols, upcoming_phases):
     with col:
         st.markdown(
-            f"### {phase['icon']} {phase['phase']}"
+            f"<div style='text-align: center; font-size: 3rem;'>"
+            f"{phase['icon']}"
+            f"</div>",
+            unsafe_allow_html=True,
         )
 
-        st.write(
-            phase["datetime"].strftime("%B %d, %Y")
+        st.markdown(
+            f"<h4 style='text-align: center;'>"
+            f"{phase['phase']}"
+            f"</h4>",
+            unsafe_allow_html=True,
+        )
+
+        st.markdown(
+            f"<p style='text-align: center;'>"
+            f"{phase['datetime'].strftime('%B %d, %Y')}"
+            f"</p>",
+            unsafe_allow_html=True,
         )
 
 st.divider()
 
 st.subheader("📊 Moon Stats")
 
-col1, col2, col3, col4 = st.columns(4)
+st.caption(
+    "Key physical and orbital properties of Earth's natural satellite."
+)
 
-with col1:
-    st.metric(
-        "Diameter",
-        f'{moon_stats["diameter_km"]:,.1f} km',
-    )
+physical_col, orbit_col = st.columns(
+    2,
+    gap="large",
+)
 
-with col2:
-    st.metric(
-        "Surface Gravity",
-        f'{moon_stats["surface_gravity"]:.2f} m/s²',
-    )
+# Physical properties
+with physical_col:
+    st.markdown("#### Physical Properties")
 
-with col3:
-    st.metric(
-        "Escape Velocity",
-        f'{moon_stats["escape_velocity_kms"]:.2f} km/s',
-    )
+    col1, col2 = st.columns(2)
 
-with col4:
-    st.metric(
-        "Average Distance",
-        f'{moon_stats["average_distance_km"]:,.0f} km',
-    )
+    with col1:
+        st.metric(
+            "Diameter",
+            f'{moon_stats["diameter_km"]:,.1f} km',
+        )
 
-col1, col2, col3, col4 = st.columns(4)
+        st.metric(
+            "Surface Gravity",
+            f'{moon_stats["surface_gravity"]:.2f} m/s²',
+        )
 
-with col1:
-    st.metric(
-        "Mass",
-        f'{moon_stats["mass_kg"]:.3e} kg',
-    )
+    with col2:
+        st.metric(
+            "Mass",
+            f'{moon_stats["mass_kg"]:.3e} kg',
+        )
 
-with col2:
-    st.metric(
-        "Orbital Period",
-        f'{moon_stats["orbital_period_days"]:.2f} days',
-    )
+        st.metric(
+            "Surface Area",
+            f'{moon_stats["surface_area_km2"]:,.0f} km²',
+        )
 
-with col3:
-    st.metric(
-        "Rotation Period",
-        f'{moon_stats["rotation_period_days"]:.2f} days',
-    )
+# Orbital properties
+with orbit_col:
+    st.markdown("#### Orbit & Motion")
 
-with col4:
-    st.metric(
-        "Surface Area",
-        f'{moon_stats["surface_area_km2"]:,.0f} km²',
-    )
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.metric(
+            "Average Distance",
+            f'{moon_stats["average_distance_km"]:,.0f} km',
+        )
+
+        st.metric(
+            "Orbital Period",
+            f'{moon_stats["orbital_period_days"]:.2f} days',
+        )
+
+    with col2:
+        st.metric(
+            "Escape Velocity",
+            f'{moon_stats["escape_velocity_kms"]:.2f} km/s',
+        )
+
+        st.metric(
+            "Rotation Period",
+            f'{moon_stats["rotation_period_days"]:.2f} days',
+        )
 
 st.caption(
     "The Moon's surface gravity is about 16.5% of Earth's. "
@@ -415,3 +449,87 @@ if "image" in location:
 
         st.caption(map_caption)
 
+st.divider()
+
+st.subheader("🖼️ Lunar Image Gallery")
+
+st.caption(
+    "Explore the Moon through historic photography, "
+    "spacecraft imagery, and scientific observations."
+)
+
+gallery_category = st.segmented_control(
+    "Gallery Category",
+    options=list(LUNAR_GALLERY.keys()),
+    default="🌎 Earth & Moon",
+)
+
+gallery_images = LUNAR_GALLERY[gallery_category]
+
+if gallery_images:
+
+    image_titles = [
+        image["title"]
+        for image in gallery_images
+    ]
+
+    selected_image_title = st.selectbox(
+        "Choose an image",
+        image_titles,
+    )
+
+    selected_image = next(
+        image
+        for image in gallery_images
+        if image["title"] == selected_image_title
+    )
+
+    gallery_image_col, gallery_info_col = st.columns(
+        [1.4, 1],
+        gap="large",
+    )
+
+    with gallery_image_col:
+        image_path = Path(selected_image["image"])
+
+        if image_path.exists():
+            st.image(
+                str(image_path),
+                use_container_width=True,
+            )
+
+            st.caption(
+                selected_image["credit"]
+            )
+
+        else:
+            st.warning(
+                "This gallery image hasn't been added yet."
+            )
+
+    with gallery_info_col:
+        st.markdown(
+            f"### {selected_image['title']}"
+        )
+
+        st.write(
+            f"**Mission:** {selected_image['mission']}"
+        )
+
+        st.write(
+            f"**Year:** {selected_image['year']}"
+        )
+
+        st.write(
+            selected_image["description"]
+        )
+
+        st.link_button(
+            "View NASA Source",
+            selected_image["source_url"],
+        )
+
+else:
+    st.info(
+        "Images for this category are coming soon."
+    )
